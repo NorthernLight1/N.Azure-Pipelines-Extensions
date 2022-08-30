@@ -538,7 +538,11 @@ function Invoke-DacpacDeployment
     if($databaseName -Split "" -Contains "*")
 	{
 		$databaseNamePattern = $databaseName -Replace "*", "%" -Replace "_", "[_]"
-		$databaseNames=Invoke-Sqlcmd -Query "SELECT name FROM sys.databases WHERE state=0 AND name LIKE '$dbNamePattern' ORDER BY name" -ConnectionString $connectionString
+		$dbNames=Invoke-Sqlcmd -Query "SELECT name FROM sys.databases WHERE state=0 AND name LIKE '$dbNamePattern' ORDER BY name" -ConnectionString $connectionString
+		foreach($dbName in $dbNames)
+		{
+			Write-Verbose "Found Database $($dbName)";
+		}
 	}
 	$sqlInvokeCmd = Invoke-SqlCmd -ConnectionString $connectionString
 	Write-Verbose -Verbose $sqlPackageArguments

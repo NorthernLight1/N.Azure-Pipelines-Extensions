@@ -5,7 +5,7 @@ param(
     [hashtable]$ModuleParameters = @{ })
 
 if ($host.Name -ne 'ConsoleHost') {
-    Write-Warning "TaskModuleSqlUtility is designed for use with powershell.exe (ConsoleHost). Output may be different when used with other hosts."
+    Write-Warning "N.TaskModule.SqlUtility is designed for use with powershell.exe (ConsoleHost). Output may be different when used with other hosts."
 }
 
 # Private module variables.
@@ -26,7 +26,7 @@ Export-ModuleMember -Function @(
 # been loaded once, then it is not loaded again.
 Write-Verbose "Adding exceptions types."
 Add-Type -WarningAction SilentlyContinue -Debug:$false -TypeDefinition @'
-namespace TaskModuleSqlUtility
+namespace N.TaskModule.SqlUtility
 {
     public class TerminationException : System.Exception
     {
