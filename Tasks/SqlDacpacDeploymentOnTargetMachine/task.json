@@ -1,6 +1,6 @@
 {
-    "id": "4B506F7F-720F-47BB-BF21-029BAC6A690D",
-    "name": "SqlDacpacDeploymentOnMachineGroup",
+    "id": "05E79FDA-2A72-400E-984A-54BDEB1C02A9",
+    "name": "NSqlDacpacDeploymentOnMachineGroup",
     "friendlyName": "SQL Server database deploy",
     "description": "Deploy a SQL Server database using DACPAC or SQL scripts",
     "helpUrl": "https://docs.microsoft.com/azure/devops/pipelines/tasks/deploy/sql-dacpac-deployment-on-machine-group",
@@ -13,10 +13,10 @@
         "Agent",
         "DeploymentGroup"
     ],
-    "author": "Microsoft Corporation",
+    "author": "NorthernLight1",
     "version": {
         "Major": 0,
-        "Minor": 198,
+        "Minor": 1,
         "Patch": 0
     },
     "demands": [],
@@ -192,6 +192,26 @@
             "defaultValue": "",
             "visibleRule": "TaskType = sqlQuery || TaskType = sqlInline",
             "helpMarkDown": "Additional Invoke-Sqlcmd arguments that will be applied when deploying the SQL Server database."
+        },
+		{
+            "name": "Parallel",
+            "type": "boolean",
+            "label": "Parallel",
+            "required": true,
+            "visibleRule": "",
+            "defaultValue": "false",
+			"visibleRule": "TaskType = dacpac",
+            "helpMarkDown": "Deploy databases in parallel."
+        },
+		{
+            "name": "MaximumNumberToDeployInParallel",
+            "type": "string",
+            "label": "Maximum number to deploy in parallel",
+            "required": true,
+            "visibleRule": "Parallel = true",
+            "defaultValue": "0",
+			"visibleRule": "TaskType = dacpac",
+            "helpMarkDown": "Sets the maximum number of databases to deploy in parallel. A zero value will cause the default value to be used, which is calculated during execution on the target machine."
         }
     ],
     "instanceNameFormat": "Deploy using : $(TaskType)",

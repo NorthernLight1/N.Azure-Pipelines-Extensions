@@ -4,7 +4,7 @@ param(
     [Parameter()]
     [hashtable]$ModuleParameters = @{ })
 
-if ($host.Name -ne 'ConsoleHost') {
+if ($host.Name -notin "ConsoleHost","Default Host") {
     Write-Warning "N.TaskModule.SqlUtility is designed for use with powershell.exe (ConsoleHost). Output may be different when used with other hosts."
 }
 
@@ -13,12 +13,14 @@ if ($host.Name -ne 'ConsoleHost') {
 Write-Verbose "NonInteractive: $script:nonInteractive"
 
 # Import/export functions.
+. "$PSScriptRoot\JobManager.ps1"
 . "$PSScriptRoot\SqlPackageOnTargetMachines.ps1"
 . "$PSScriptRoot\SqlQueryOnTargetMachines.ps1"
 
 Export-ModuleMember -Function @(
         'Invoke-SqlQueryDeployment',
-        'Invoke-DacpacDeployment'
+        'Invoke-DacpacDeployment',
+		'Invoke-CommandLine'
     )
 
 # Special internal exception type to control the flow. Not currently intended

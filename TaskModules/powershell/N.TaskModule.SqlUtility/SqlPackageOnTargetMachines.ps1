@@ -5,39 +5,7 @@
 }
 
 function Import-ThreadJob {
-    push-location
-    Import-Module ThreadJob -ErrorAction 'SilentlyContinue' | out-null
-    pop-location
-}
-
-function RunCommand
-{
-    param(
-        [string]$command,
-        [bool] $failOnErr = $true
-    )
-
-    $ErrorActionPreference = 'Continue'
-
-    if( $psversiontable.PSVersion.Major -le 4)
-    {
-        $result = cmd.exe /c "`"$command`""  2>&1
-    }
-    else
-    {
-
-        Write-Verbose -Verbose $command
-        $result = cmd.exe /c "$command"  2>&1
-    }
-
-    $ErrorActionPreference = 'Stop'
-
-    if($failOnErr -and $LASTEXITCODE -ne 0)
-    {
-        throw $result
-    }
-
-    return $result
+    Import-PSModule ThreadJob
 }
 
 function Get-SqlPackageOnTargetMachine
@@ -534,7 +502,9 @@ function Invoke-DacpacDeployment
      [System.Management.Automation.PSCredential]$sqlServerCredentials,
      [string]$connectionString,
      [string]$publishProfile,
-     [string]$additionalArguments
+     [string]$additionalArguments,
+	 [switch]$parallel,
+	 [int]$throttleLimit
     )
 	
     Write-Verbose "Entering script SqlPackageOnTargetMachines.ps1"
@@ -554,14 +524,16 @@ function Invoke-DacpacDeployment
 
 	foreach($dbName in $dbNames)
 	{
-		$sqlPackageArguments = Get-SqlPackageCmdArgs -dacpacFile $dacpacFile -targetMethod $targetMethod -serverName $serverName -databaseName $dbName -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials -connectionString $connectionString -publishProfile $publishProfile -additionalArguments $additionalArguments
+		$wait=$dbName -eq $dbNames[-1]
+		$tempDbName=$dbName[0]
+		$sqlPackageArguments = Get-SqlPackageCmdArgs -dacpacFile $dacpacFile -targetMethod $targetMethod -serverName $serverName -databaseName $dbName[0] -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials -connectionString $connectionString -publishProfile $publishProfile -additionalArguments $additionalArguments
 		Write-Verbose -Verbose $sqlPackageArguments
 		Write-Verbose "Executing command: $sqlPackage $sqlPackageArguments"
-		N-Invoke-Job -scriptBlock { param([string]$sqlPackage,[string]$sqlPackageArguments) ExecuteCommand -FileName "$sqlPackage"  -Arguments $sqlPackageArguments } -argumentList ($sqlPackage, $sqlPackageArguments)
+		N-Invoke-Job -name "$tempDbName" -scriptBlock { param([string]$sqlPackage,[string]$sqlPackageArguments) Invoke-CommandLine -FileName "$sqlPackage"  -Arguments $sqlPackageArguments } -argumentList ($sqlPackage, $sqlPackageArguments) -parallel:$parallel -wait:$wait -throttleLimit $throttleLimit 
 	}
 }
 
-function ExecuteCommand
+function Invoke-CommandLine
 {
     param(
         [String][Parameter(Mandatory=$true)] $FileName,
