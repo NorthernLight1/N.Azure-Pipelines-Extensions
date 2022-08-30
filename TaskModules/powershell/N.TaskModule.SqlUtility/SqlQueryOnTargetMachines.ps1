@@ -102,6 +102,76 @@ function Invoke-SqlQueryDeployment
     }
 }
 
+function Invoke-SqlQuery
+{
+    param (
+        [string]$query,
+        [string]$serverName,
+        [string]$databaseName,
+        [string]$authscheme,
+        [System.Management.Automation.PSCredential]$sqlServerCredentials,
+        [string]$additionalArguments
+    )
+
+    Write-Verbose "Entering script SqlQueryOnTargetMachines.ps1"
+    Write-Verbose "serverName = $serverName"
+    Write-Verbose "databaseName = $databaseName"
+    Write-Verbose "authscheme = $authscheme"
+    Write-Verbose "additionalArguments = $additionalArguments"
+
+    try 
+    {
+		
+		$sqlFile = Get-SqlFilepathOnTargetMachine $query
+        # Import SQLPS Module
+        Import-SqlPs
+
+        $arguments = @{
+            ServerInstance=$serverName
+            Database=$databaseName
+			InputFile=$sqlFile
+        }
+
+        if($authscheme -eq "sqlServerAuthentication")
+        {
+            if($sqlServerCredentials)
+            {
+                $sqlUsername = $sqlServerCredentials.Username
+                $sqlPassword = $sqlServerCredentials.GetNetworkCredential().password
+                $arguments.Add("Username", $sqlUsername)
+                $arguments.Add("Password", $sqlPassword)
+            }
+        }
+
+        $commandToLog = "Invoke-SqlCmd"
+        foreach ($arg in $arguments.Keys) {
+            if($arg -ne "Password")
+            {
+                $commandToLog += " -${arg} $($arguments.Item($arg))"
+            }
+            else
+            {
+                $commandToLog += " -${arg} *******"
+            }
+        }
+
+        $additionalArguments = EscapeSpecialChars $additionalArguments
+
+        Write-Verbose "Invoke-SqlCmd arguments : $commandToLog  $additionalArguments"
+        Invoke-Expression "Invoke-SqlCmd @arguments $additionalArguments"
+
+    } # End of Try
+    Finally
+    {
+        # Cleanup the temp file & dont error out in case Deletion fails
+        if ($taskType -eq "sqlInline" -and $sqlFile -and ((Test-Path $sqlFile) -eq $true))
+        {
+            Write-Verbose "Removing File $sqlFile"
+            Remove-Item $sqlFile -ErrorAction 'SilentlyContinue'
+        }
+    }
+}
+
 function EscapeSpecialChars
 {
     param(

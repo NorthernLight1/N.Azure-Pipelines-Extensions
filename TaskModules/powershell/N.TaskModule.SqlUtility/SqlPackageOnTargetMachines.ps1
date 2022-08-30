@@ -4,6 +4,12 @@
     pop-location
 }
 
+function Import-ThreadJob {
+    push-location
+    Import-Module ThreadJob -ErrorAction 'SilentlyContinue' | out-null
+    pop-location
+}
+
 function RunCommand
 {
     param(
@@ -533,22 +539,26 @@ function Invoke-DacpacDeployment
 	
     Write-Verbose "Entering script SqlPackageOnTargetMachines.ps1"
 	Import-SqlPs
+	Import-ThreadJob
+	
     $sqlPackage = Get-SqlPackageOnTargetMachine
-    $sqlPackageArguments = Get-SqlPackageCmdArgs -dacpacFile $dacpacFile -targetMethod $targetMethod -serverName $serverName -databaseName $databaseName -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials -connectionString $connectionString -publishProfile $publishProfile -additionalArguments $additionalArguments
-    if($databaseName -Split "" -Contains "*")
+    if($databaseName.Contains("*"))
 	{
-		$databaseNamePattern = $databaseName -Replace "*", "%" -Replace "_", "[_]"
-		$dbNames=Invoke-Sqlcmd -Query "SELECT name FROM sys.databases WHERE state=0 AND name LIKE '$dbNamePattern' ORDER BY name" -ConnectionString $connectionString
-		foreach($dbName in $dbNames)
-		{
-			Write-Verbose "Found Database $($dbName)";
-		}
+		$databaseNamePattern = $databaseName -Replace "\*", "%" -Replace "_", "[_]"
+		$dbNames=Invoke-SqlQuery -Query "SELECT name FROM sys.databases WHERE state=0 AND name LIKE '$($databaseNamePattern)' ORDER BY name" -serverName $serverName -databaseName $databaseName -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials
 	}
-	$sqlInvokeCmd = Invoke-SqlCmd -ConnectionString $connectionString
-	Write-Verbose -Verbose $sqlPackageArguments
+	else
+	{
+		$dbNames=,$databaseName
+	}
 
-    Write-Verbose "Executing command: $sqlPackage $sqlPackageArguments"
-    ExecuteCommand -FileName "$sqlPackage"  -Arguments $sqlPackageArguments
+	foreach($dbName in $dbNames)
+	{
+		$sqlPackageArguments = Get-SqlPackageCmdArgs -dacpacFile $dacpacFile -targetMethod $targetMethod -serverName $serverName -databaseName $dbName -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials -connectionString $connectionString -publishProfile $publishProfile -additionalArguments $additionalArguments
+		Write-Verbose -Verbose $sqlPackageArguments
+		Write-Verbose "Executing command: $sqlPackage $sqlPackageArguments"
+		N-Invoke-Job -scriptBlock { param([string]$sqlPackage,[string]$sqlPackageArguments) ExecuteCommand -FileName "$sqlPackage"  -Arguments $sqlPackageArguments } -argumentList ($sqlPackage, $sqlPackageArguments)
+	}
 }
 
 function ExecuteCommand
