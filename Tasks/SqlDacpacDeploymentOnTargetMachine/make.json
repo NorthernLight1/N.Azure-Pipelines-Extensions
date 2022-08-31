@@ -2,13 +2,27 @@
     "externals": {
        "nugetv2": [
             {
-                "name": "TaskModuleSqlUtility",
-                "version": "0.1.5",
+                "name": "N.TaskModule.SqlUtility",
+                "version": "1.0.0",
                 "repository": "https://www.powershellgallery.com/api/v2/",
                 "cp": [
                     {
                       "source": "*.ps*",
-                      "dest":"ps_modules/TaskModuleSqlUtility"
+                      "dest":"ps_modules/N.TaskModule.SqlUtility"
+                    }
+                ]
+            },
+			{
+                "name": "ThreadJob",
+                "version": "2.0.3",
+                "repository": "https://www.powershellgallery.com/api/v2/",
+                "cp": [
+                    {
+                        "source": [
+                            "*.dll",
+                            "*.psd1"
+                        ],
+                      "dest":"ps_modules/ThreadJob"
                     }
                 ]
             },

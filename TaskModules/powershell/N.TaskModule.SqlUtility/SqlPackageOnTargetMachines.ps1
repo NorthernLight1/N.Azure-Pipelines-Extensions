@@ -1,40 +1,4 @@
-﻿function Import-SqlPs {
-    push-location
-    Import-Module SqlPS -ErrorAction 'SilentlyContinue' | out-null
-    pop-location
-}
-
-function RunCommand
-{
-    param(
-        [string]$command,
-        [bool] $failOnErr = $true
-    )
-
-    $ErrorActionPreference = 'Continue'
-
-    if( $psversiontable.PSVersion.Major -le 4)
-    {
-        $result = cmd.exe /c "`"$command`""  2>&1
-    }
-    else
-    {
-
-        Write-Verbose -Verbose $command
-        $result = cmd.exe /c "$command"  2>&1
-    }
-
-    $ErrorActionPreference = 'Stop'
-
-    if($failOnErr -and $LASTEXITCODE -ne 0)
-    {
-        throw $result
-    }
-
-    return $result
-}
-
-function Get-SqlPackageOnTargetMachine
+﻿function Get-SqlPackageOnTargetMachine
 {
     try
     {
@@ -523,35 +487,30 @@ function Invoke-DacpacDeployment
      [string]$dacpacFile,
      [string]$targetMethod,
      [string]$serverName,
-     [string]$databaseName,
+     [string[]]$databaseName,
      [string]$authscheme,
      [System.Management.Automation.PSCredential]$sqlServerCredentials,
      [string]$connectionString,
      [string]$publishProfile,
-     [string]$additionalArguments
+     [string]$additionalArguments,
+	 [switch]$parallel,
+	 [int]$throttleLimit
     )
 	
     Write-Verbose "Entering script SqlPackageOnTargetMachines.ps1"
-	Import-SqlPs
+	$databases = Get-Databases -serverName $serverName -databaseName $databaseName -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials
     $sqlPackage = Get-SqlPackageOnTargetMachine
-    $sqlPackageArguments = Get-SqlPackageCmdArgs -dacpacFile $dacpacFile -targetMethod $targetMethod -serverName $serverName -databaseName $databaseName -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials -connectionString $connectionString -publishProfile $publishProfile -additionalArguments $additionalArguments
-    if($databaseName -Split "" -Contains "*")
-	{
-		$databaseNamePattern = $databaseName -Replace "*", "%" -Replace "_", "[_]"
-		$dbNames=Invoke-Sqlcmd -Query "SELECT name FROM sys.databases WHERE state=0 AND name LIKE '$dbNamePattern' ORDER BY name" -ConnectionString $connectionString
-		foreach($dbName in $dbNames)
-		{
-			Write-Verbose "Found Database $($dbName)";
-		}
-	}
-	$sqlInvokeCmd = Invoke-SqlCmd -ConnectionString $connectionString
-	Write-Verbose -Verbose $sqlPackageArguments
 
-    Write-Verbose "Executing command: $sqlPackage $sqlPackageArguments"
-    ExecuteCommand -FileName "$sqlPackage"  -Arguments $sqlPackageArguments
+	foreach($database in $databases)
+	{
+		$sqlPackageArguments = Get-SqlPackageCmdArgs -dacpacFile $dacpacFile -targetMethod $targetMethod -serverName $serverName -databaseName $database -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials -connectionString $connectionString -publishProfile $publishProfile -additionalArguments $additionalArguments
+		Write-Verbose -Verbose $sqlPackageArguments
+		Write-Verbose "Executing command: $sqlPackage $sqlPackageArguments"
+		Invoke-PSCommand -name "SqlDeployment(Server='$serverName', Database='$tempDbName', Type=DacPac)" -scriptBlock { param([string]$sqlPackage,[string]$sqlPackageArguments) Invoke-CommandLine -FileName "$sqlPackage"  -Arguments $sqlPackageArguments } -argumentList ($sqlPackage, $sqlPackageArguments) -parallel:$parallel -wait:($database -eq $databases[-1]) -throttleLimit $throttleLimit 
+	}
 }
 
-function ExecuteCommand
+function Invoke-CommandLine
 {
     param(
         [String][Parameter(Mandatory=$true)] $FileName,

@@ -90,9 +90,15 @@ $connectionString = Get-VstsInput -Name "connectionString"
 $publishProfile = Get-VstsInput -Name "publishProfile"
 $additionalArguments = Get-VstsInput -Name "additionalArguments"
 $additionalArgumentsSql = Get-VstsInput -Name "additionalArgumentsSql"
+$parallel = Get-VstsInput -Name "parallel" -AsBool
+$maximumNumberToDeployInParallel = Get-VstsInput -Name "maximumNumberToDeployInParallel"
 
+if ($databaseName.Contains("`n")) {
+	[string[]]$databaseName = $databaseName -split "`n"
+}
 
-Import-Module $PSScriptRoot\ps_modules\TaskModuleSqlUtility
+Import-Module $PSScriptRoot\ps_modules\N.TaskModule.SqlUtility
+Import-Module $PSScriptRoot\ps_modules\ThreadJob
 . "$PSScriptRoot\Utility.ps1"
 . "$PSScriptRoot\GenerateSqlBatchFiles.ps1"
 
@@ -121,7 +127,7 @@ Try
     if ($taskType -eq "dacpac")
     {
         $dacpacFile = Get-SingleFile -pattern $dacpacFile
-        Invoke-DacpacDeployment -dacpacFile $dacpacFile -targetMethod $targetMethod -serverName $serverName -databaseName $databaseName -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials -connectionString $connectionString -publishProfile $publishProfile -additionalArguments $additionalArguments
+        Invoke-DacpacDeployment -dacpacFile $dacpacFile -targetMethod $targetMethod -serverName $serverName -databaseName $databaseName -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials -connectionString $connectionString -publishProfile $publishProfile -additionalArguments $additionalArguments -Parallel $parallel -ThrottleLimit $maximumNumberToDeployInParallel
     }
     else
     {
