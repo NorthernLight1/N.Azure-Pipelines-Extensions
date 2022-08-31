@@ -93,6 +93,10 @@ $additionalArgumentsSql = Get-VstsInput -Name "additionalArgumentsSql"
 $parallel = Get-VstsInput -Name "parallel" -AsBool
 $maximumNumberToDeployInParallel = Get-VstsInput -Name "maximumNumberToDeployInParallel"
 
+if ($databaseName.Contains("`n")) {
+	[string[]]$databaseName = $databaseName -split "`n"
+}
+
 Import-Module $PSScriptRoot\ps_modules\N.TaskModule.SqlUtility
 Import-Module $PSScriptRoot\ps_modules\ThreadJob
 . "$PSScriptRoot\Utility.ps1"

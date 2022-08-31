@@ -1,14 +1,4 @@
-﻿function Import-SqlPs {
-    push-location
-    Import-Module SqlPS -ErrorAction 'SilentlyContinue' | out-null
-    pop-location
-}
-
-function Import-ThreadJob {
-    Import-PSModule ThreadJob
-}
-
-function Get-SqlPackageOnTargetMachine
+﻿function Get-SqlPackageOnTargetMachine
 {
     try
     {
@@ -497,7 +487,7 @@ function Invoke-DacpacDeployment
      [string]$dacpacFile,
      [string]$targetMethod,
      [string]$serverName,
-     [string]$databaseName,
+     [string[]]$databaseName,
      [string]$authscheme,
      [System.Management.Automation.PSCredential]$sqlServerCredentials,
      [string]$connectionString,
@@ -508,28 +498,15 @@ function Invoke-DacpacDeployment
     )
 	
     Write-Verbose "Entering script SqlPackageOnTargetMachines.ps1"
-	Import-SqlPs
-	Import-ThreadJob
-	
+	$databases = Get-Databases -serverName $serverName -databaseName $databaseName -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials
     $sqlPackage = Get-SqlPackageOnTargetMachine
-    if($databaseName.Contains("*"))
-	{
-		$databaseNamePattern = $databaseName -Replace "\*", "%" -Replace "_", "[_]"
-		$dbNames=Invoke-SqlQuery -Query "SELECT name FROM sys.databases WHERE state=0 AND name LIKE '$($databaseNamePattern)' ORDER BY name" -serverName $serverName -databaseName $databaseName -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials
-	}
-	else
-	{
-		$dbNames=,$databaseName
-	}
 
-	foreach($dbName in $dbNames)
+	foreach($database in $databases)
 	{
-		$wait=$dbName -eq $dbNames[-1]
-		$tempDbName=$dbName[0]
-		$sqlPackageArguments = Get-SqlPackageCmdArgs -dacpacFile $dacpacFile -targetMethod $targetMethod -serverName $serverName -databaseName $dbName[0] -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials -connectionString $connectionString -publishProfile $publishProfile -additionalArguments $additionalArguments
+		$sqlPackageArguments = Get-SqlPackageCmdArgs -dacpacFile $dacpacFile -targetMethod $targetMethod -serverName $serverName -databaseName $database -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials -connectionString $connectionString -publishProfile $publishProfile -additionalArguments $additionalArguments
 		Write-Verbose -Verbose $sqlPackageArguments
 		Write-Verbose "Executing command: $sqlPackage $sqlPackageArguments"
-		N-Invoke-Job -name "$tempDbName" -scriptBlock { param([string]$sqlPackage,[string]$sqlPackageArguments) Invoke-CommandLine -FileName "$sqlPackage"  -Arguments $sqlPackageArguments } -argumentList ($sqlPackage, $sqlPackageArguments) -parallel:$parallel -wait:$wait -throttleLimit $throttleLimit 
+		Invoke-PSCommand -name "SqlDeployment(Server='$serverName', Database='$tempDbName', Type=DacPac)" -scriptBlock { param([string]$sqlPackage,[string]$sqlPackageArguments) Invoke-CommandLine -FileName "$sqlPackage"  -Arguments $sqlPackageArguments } -argumentList ($sqlPackage, $sqlPackageArguments) -parallel:$parallel -wait:($database -eq $databases[-1]) -throttleLimit $throttleLimit 
 	}
 }
 

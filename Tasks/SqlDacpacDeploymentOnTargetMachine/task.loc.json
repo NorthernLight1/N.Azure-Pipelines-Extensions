@@ -3,7 +3,7 @@
   "name": "NSqlDacpacDeploymentOnMachineGroup",
   "friendlyName": "ms-resource:loc.friendlyName",
   "description": "ms-resource:loc.description",
-  "helpUrl": "https://docs.microsoft.com/azure/devops/pipelines/tasks/deploy/sql-dacpac-deployment-on-machine-group",
+  "helpUrl": "https://github.com/NorthernLight1/N.Azure-Pipelines-Extensions",
   "helpMarkDown": "ms-resource:loc.helpMarkDown",
   "category": "Deploy",
   "visibility": [
@@ -119,10 +119,15 @@
     },
     {
       "name": "DatabaseName",
-      "type": "string",
+      "type": "multiLine",
       "label": "ms-resource:loc.input.label.DatabaseName",
       "required": true,
       "defaultValue": "",
+      "properties": {
+        "resizable": "true",
+        "rows": "4",
+        "maxLength": "5000"
+      },
       "visibleRule": "TargetMethod = server || TaskType = sqlQuery || TaskType = sqlInline",
       "helpMarkDown": "ms-resource:loc.input.help.DatabaseName"
     },
@@ -192,6 +197,24 @@
       "defaultValue": "",
       "visibleRule": "TaskType = sqlQuery || TaskType = sqlInline",
       "helpMarkDown": "ms-resource:loc.input.help.AdditionalArgumentsSql"
+    },
+    {
+      "name": "Parallel",
+      "type": "boolean",
+      "label": "ms-resource:loc.input.label.Parallel",
+      "required": true,
+      "visibleRule": "TaskType = dacpac",
+      "defaultValue": "false",
+      "helpMarkDown": "ms-resource:loc.input.help.Parallel"
+    },
+    {
+      "name": "MaximumNumberToDeployInParallel",
+      "type": "string",
+      "label": "ms-resource:loc.input.label.MaximumNumberToDeployInParallel",
+      "required": true,
+      "defaultValue": "0",
+      "visibleRule": "TaskType = dacpac && Parallel = true",
+      "helpMarkDown": "ms-resource:loc.input.help.MaximumNumberToDeployInParallel"
     }
   ],
   "instanceNameFormat": "ms-resource:loc.instanceNameFormat",

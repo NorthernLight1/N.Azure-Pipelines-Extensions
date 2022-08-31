@@ -3,7 +3,7 @@
     "name": "NSqlDacpacDeploymentOnMachineGroup",
     "friendlyName": "SQL Server database deploy",
     "description": "Deploy a SQL Server database using DACPAC or SQL scripts",
-    "helpUrl": "https://docs.microsoft.com/azure/devops/pipelines/tasks/deploy/sql-dacpac-deployment-on-machine-group",
+    "helpUrl": "https://github.com/NorthernLight1/N.Azure-Pipelines-Extensions",
     "helpMarkDown": "[Learn more about this task](https://aka.ms/sqldacpacmachinegroupreadme)",
     "category": "Deploy",
     "visibility": [
@@ -119,12 +119,17 @@
         },
         {
             "name": "DatabaseName",
-            "type": "string",
-            "label": "Database Name",
+            "type": "multiLine",
+            "label": "Database Name(s)",
             "required": true,
             "defaultValue": "",
+			"properties": {
+                "resizable": "true",
+                "rows": "4",
+                "maxLength": "5000"
+            },
             "visibleRule": "TargetMethod = server || TaskType = sqlQuery || TaskType = sqlInline",
-            "helpMarkDown": "Provide the name of the SQL Server database."
+            "helpMarkDown": "Provide the name(s) of the SQL Server database(s). You can use wildcards to find all databases on the target server (e.g. NorthwindDb%)."
         },
         {
             "name": "AuthScheme",
@@ -201,16 +206,15 @@
             "visibleRule": "",
             "defaultValue": "false",
 			"visibleRule": "TaskType = dacpac",
-            "helpMarkDown": "Deploy databases in parallel."
+            "helpMarkDown": "Allows databses to be deployed in parallel."
         },
 		{
             "name": "MaximumNumberToDeployInParallel",
             "type": "string",
             "label": "Maximum number to deploy in parallel",
             "required": true,
-            "visibleRule": "Parallel = true",
             "defaultValue": "0",
-			"visibleRule": "TaskType = dacpac",
+			"visibleRule": "TaskType = dacpac && Parallel = true",
             "helpMarkDown": "Sets the maximum number of databases to deploy in parallel. A zero value will cause the default value to be used, which is calculated during execution on the target machine."
         }
     ],

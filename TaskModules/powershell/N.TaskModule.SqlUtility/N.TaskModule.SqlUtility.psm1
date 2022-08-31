@@ -13,7 +13,7 @@ if ($host.Name -notin "ConsoleHost","Default Host") {
 Write-Verbose "NonInteractive: $script:nonInteractive"
 
 # Import/export functions.
-. "$PSScriptRoot\JobManager.ps1"
+. "$PSScriptRoot\CommonUtil.ps1"
 . "$PSScriptRoot\SqlPackageOnTargetMachines.ps1"
 . "$PSScriptRoot\SqlQueryOnTargetMachines.ps1"
 

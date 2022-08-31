@@ -15,6 +15,32 @@ function Get-SqlFilepathOnTargetMachine
     return $tempFilePath
 }
 
+function Get-Databases
+{
+	param(
+		[string]$serverName,
+		[string[]]$databaseName,
+		[string]$authscheme,
+		[System.Management.Automation.PSCredential]$sqlServerCredentials,
+	)
+	
+	$databases = New-Object Collections.Generic.List[object];
+	foreach($dbName in $databaseName)
+	{
+		if($dbName.Contains("%"))
+		{
+			$dbName = $dbName -Replace "_", "[_]"
+			$databasesFromQuery=Invoke-SqlQuery -Query "SELECT name FROM sys.databases WHERE state=0 AND name LIKE '$($dbName)' ORDER BY name" -serverName $serverName -databaseName $databaseName -authscheme $authscheme -sqlServerCredentials $sqlServerCredentials | Select-Object -Property name
+			$databases.AddRange($databasesFromQuery)
+		}
+		else
+		{
+			$databases.Add($dbName);
+		}
+	}
+	return $databases
+}
+
 function Invoke-SqlQueryDeployment
 {
     param (
